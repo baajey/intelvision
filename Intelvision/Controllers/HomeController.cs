@@ -8,6 +8,8 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
+using Newtonsoft.Json;
+using System.Text;
 
 namespace Intelvision.Controllers
 {
@@ -51,9 +53,9 @@ namespace Intelvision.Controllers
 
                var result = await ProcessImage(data);
 
-                ViewBag.OCRResponse = result.Data;
-                ViewBag.ImageResponse = result.Data;
-                return View();
+                ViewBag.OCRResponse = result;
+             
+                return View("AutoUI", ViewBag);
             }
             catch
             {
@@ -62,10 +64,16 @@ namespace Intelvision.Controllers
             }
         }
 
-        [HttpPost]
-        public async Task<JsonResult> ProcessImage(byte[] data)
+
+        public ActionResult AutoUI()
         {
-            JsonResult re = new JsonResult();
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<string> ProcessImage(byte[] data)
+        {
+            string htmlresult = string.Empty;
             try
             {
                 HttpClient client = new HttpClient();
@@ -103,18 +111,25 @@ namespace Intelvision.Controllers
 
                 // Asynchronously get the JSON response.
                 string contentString = await response.Content.ReadAsStringAsync();
-               
-                re.ContentType = "application/json";
-                re.Data = JToken.Parse(contentString);
-
-
+                var obj2 = JsonConvert.SerializeObject(contentString);
+               //var obj = new JsonSerializer().Serialize()
+             
                 
+                //send data to api for html generation
+                string apiURI = "https://demohtmlgenerator.azurewebsites.net/api/Values/DecryptOCR";
+                HttpClient apiclient = new HttpClient();
+                string apirequestjson = "{\"OCRValue\":" + obj2 + "}";
+                var aicontent = new StringContent(apirequestjson, Encoding.UTF8, "application/json");
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls | System.Net.SecurityProtocolType.Tls11 | System.Net.SecurityProtocolType.Tls12;//System.Net.SecurityProtocolType.Ssl3;// Expect100Continue = false;
+                var htmlResponse = await apiclient.PostAsync(apiURI, aicontent);
+                htmlresult = await htmlResponse.Content.ReadAsStringAsync();
+               
             }
             catch (Exception e)
             {
                 Console.WriteLine("\n" + e.Message);
             }
-            return re;
+            return htmlresult;
         }
 
       
