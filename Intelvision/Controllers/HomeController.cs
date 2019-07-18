@@ -29,14 +29,15 @@ namespace Intelvision.Controllers
             return View();
         }
         [HttpPost]
-        public async Task<ActionResult> UploadFile(HttpPostedFileBase file)
+        public async Task<FileResult> UploadFile(HttpPostedFileBase file)
         {
+            string _FileName = string.Empty;
             try
             {
                 byte[] data = null;
                 if (file.ContentLength > 0)
                 {
-                    string _FileName = Path.GetFileName(file.FileName);
+                     _FileName = Path.GetFileName(file.FileName);
                     
                     using (Stream inputStream = file.InputStream)
                     {
@@ -52,15 +53,16 @@ namespace Intelvision.Controllers
                 }
 
                var result = await ProcessImage(data);
+                //return View("AutoUI", ViewBag);
 
-                ViewBag.OCRResponse = result;
-             
-                return View("AutoUI", ViewBag);
+                byte[] fileBytes = Encoding.ASCII.GetBytes(result); // result.Toc;
+                string fileName = $"{_FileName + ".html"}";
+                return File(fileBytes, System.Net.Mime.MediaTypeNames.Application.Octet, fileName);
             }
             catch
             {
                 ViewBag.Message = "File upload failed!!";
-                return View();
+                return null;
             }
         }
 
